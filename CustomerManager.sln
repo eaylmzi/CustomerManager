@@ -5,13 +5,13 @@ VisualStudioVersion = 17.11.35327.3
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{CBE28093-F90A-451D-A357-2E4DA70ACA4F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomerManager.Application", "CustomerManager.Application\CustomerManager.Application.csproj", "{C75258EF-D558-41C2-9621-E509003CA77F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Application", "CustomerManager.Application\CustomerManager.Application.csproj", "{C75258EF-D558-41C2-9621-E509003CA77F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomerManager.Domain", "CustomerManager.Domain\CustomerManager.Domain.csproj", "{F97FE72C-0914-4AC7-BD13-95997D1E25BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Domain", "CustomerManager.Domain\CustomerManager.Domain.csproj", "{F97FE72C-0914-4AC7-BD13-95997D1E25BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomerManager.Infrastructure", "CustomerManager.Infrastructure\CustomerManager.Infrastructure.csproj", "{1D27972C-0019-402B-A1C6-615AD8B36F10}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Infrastructure", "CustomerManager.Infrastructure\CustomerManager.Infrastructure.csproj", "{1D27972C-0019-402B-A1C6-615AD8B36F10}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CustomerManager.Api", "CustomerManager.Api\CustomerManager.Api.csproj", "{35717D1B-3E2F-4348-B59E-F6534787EACC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CustomerManager.Api", "CustomerManager.Api\CustomerManager.Api.csproj", "{35717D1B-3E2F-4348-B59E-F6534787EACC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
