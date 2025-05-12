@@ -1,3 +1,4 @@
+using CustomerManager.Api.Middlewares;
 using CustomerManager.Application.Services.Registration;
 using CustomerManager.Infrastructure.Services.Registration;
 
@@ -11,8 +12,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //Injection
-builder.Services.AddLogging(configure => configure.AddConsole())
-    .AddApplicationRegistration().AddInfrastructureRegistration();
+builder.Services.AddLogging(configure => configure.AddConsole()).AddInfrastructureRegistration()
+    .AddApplicationRegistration();
 
 
 //CORS OPTION
@@ -38,5 +39,8 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+//Middlewares
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.Run();

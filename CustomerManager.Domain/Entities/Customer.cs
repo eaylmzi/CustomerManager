@@ -17,10 +17,10 @@ namespace CustomerManager.Domain.Entities
         [Column("balance")]
         public decimal Balance { get; private set; }
         [Column("status")]
-        public bool Status { get; private set; }
+        public bool Status { get; private set; } 
         [Column("city_id")]
-        public int? CityId { get; private set; }
-        //if efcore is used
+        public int? CityId { get; private set; }  
+     
         public Customer()
         {
 

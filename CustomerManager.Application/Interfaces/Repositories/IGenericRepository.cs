@@ -9,10 +9,10 @@ namespace CustomerManager.Application.Interfaces.Repositories
 {
     public interface IGenericRepository<T> where T : class
     {
+        Task<int> AddAsync(T entity);
+        Task<bool> DeleteAsync(int id);
         Task<List<T>> GetAllAsync();
         Task<T> GetByIdAsync(int id);
-        Task<T> AddAsync(T entity);
-        Task<bool> DeleteAsync(int id);
-        Task<T> UpdateAsync(string id, T entity);
+        Task<T?> UpdateAsync(T entity);
     }
 }

@@ -1,153 +1,155 @@
 ﻿using CustomerManager.Application.Interfaces.Repositories;
 using CustomerManager.Domain.Constants.Exception;
 using Microsoft.Data.SqlClient;
-using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CustomerManager.Infrastructure.Repositories
 {
-    public class GenericRepository<T> : IGenericRepository<T> where T : class 
+    public class GenericRepository<T> : IGenericRepository<T> where T : class, new()
     {
         private readonly string _connectionString;
         private readonly string _tableName;
-    
+
         public GenericRepository()
         {
-            string jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+            var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+
             if (!File.Exists(jsonPath))
                 throw new FileNotFoundException(ExceptionMessage.CONFIG_NOT_FOUND, jsonPath);
 
             var jsonData = File.ReadAllText(jsonPath);
             var jsonObject = JObject.Parse(jsonData);
-         
 
-            _connectionString = jsonObject["ConnectionStrings"]?["DatabaseConnection"]?.ToString() ?? throw new Exception(ExceptionMessage.DATABASE_NOT_FOUND);
-            _tableName = typeof(T).Name; 
+            _connectionString = jsonObject["ConnectionStrings"]?["DatabaseConnection"]?.ToString()
+                                ?? throw new Exception(ExceptionMessage.DATABASE_NOT_FOUND);
+
+            _tableName = typeof(T).Name;
         }
 
         public async Task<List<T>> GetAllAsync()
         {
             var result = new List<T>();
+            var query = $"SELECT * FROM {_tableName}";
 
-            using (var connection = new SqlConnection(_connectionString))
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            await connection.OpenAsync();
+
+            using var reader = await command.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
             {
-                await connection.OpenAsync();
-                // I have to use stored procedure to prevent sql injection
-                string query = $"SELECT * FROM {_tableName}";
-                using (var command = new SqlCommand(query, connection))
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        result.Add(MapReaderToEntity(reader));
-                    }
-                }
+                result.Add(MapReaderToEntity(reader));
             }
+
             return result;
         }
 
-        public async Task<T> GetByIdAsync(int id)
+        public async Task<T?> GetByIdAsync(int id)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string query = $"SELECT * FROM {_tableName} WHERE id = @id";
-                using (var command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@id", id);
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        if (await reader.ReadAsync())
-                        {
-                            return MapReaderToEntity(reader);
-                        }
-                    }
-                }
-            }
-            return null;
+            var query = $"SELECT * FROM {_tableName} WHERE id = @id";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@id", id);
+
+            await connection.OpenAsync();
+            using var reader = await command.ExecuteReaderAsync();
+
+            return await reader.ReadAsync() ? MapReaderToEntity(reader) : null;
         }
 
-
-        public async Task<T> AddAsync(T entity)
+        public async Task<int> AddAsync(T entity)
         {
-            using (var connection = new SqlConnection(_connectionString))
+            var properties = GetNonKeyProperties();
+            var columnNames = properties.Select(p => GetColumnName(p)).ToList();
+            var paramNames = properties.Select(p => "@" + p.Name).ToList();
+
+            var query = $"""
+                         INSERT INTO {_tableName} ({string.Join(", ", columnNames)})
+                         VALUES ({string.Join(", ", paramNames)});
+                         SELECT SCOPE_IDENTITY();
+                         """;
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            foreach (var prop in properties)
             {
-                await connection.OpenAsync();
-
-                var properties = typeof(T).GetProperties();
-                var columnNames = string.Join(",", properties.Select(p => p.Name));
-                var paramNames = string.Join(",", properties.Select(p => "@" + p.Name));
-
-                string query = $"INSERT INTO {_tableName} ({columnNames}) VALUES ({paramNames}); SELECT SCOPE_IDENTITY();";
-
-                using (var command = new SqlCommand(query, connection))
-                {
-                    foreach (var prop in properties)
-                    {
-                        command.Parameters.AddWithValue("@" + prop.Name, prop.GetValue(entity) ?? DBNull.Value);
-                    }
-                    await command.ExecuteNonQueryAsync();
-                }
+                command.Parameters.AddWithValue("@" + prop.Name, prop.GetValue(entity) ?? DBNull.Value);
             }
-            return entity;
+
+            await connection.OpenAsync();
+            var result = await command.ExecuteScalarAsync();
+            return Convert.ToInt32(result ?? throw new Exception(ExceptionMessage.FAILED_INSERTION));
         }
+
         public async Task<bool> DeleteAsync(int id)
         {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                string query = $"DELETE FROM {_tableName} WHERE id = @id";
+            var query = $"DELETE FROM {_tableName} WHERE id = @id";
 
-                using (var command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@id", id);
-                    int affectedRows = await command.ExecuteNonQueryAsync();
-                    return affectedRows > 0;
-                }
-            }
-        }
-        public async Task<T> UpdateAsync(string id, T entity)
-        {
-            using (var connection = new SqlConnection(_connectionString))
-            {
-                await connection.OpenAsync();
-                var properties = typeof(T).GetProperties();
-                var setClause = string.Join(",", properties.Select(p => $"{p.Name} = @{p.Name}"));
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@id", id);
 
-                string query = $"UPDATE {_tableName} SET {setClause} WHERE Id = @id";
+            await connection.OpenAsync();
+            var affectedRows = await command.ExecuteNonQueryAsync();
 
-                using (var command = new SqlCommand(query, connection))
-                {
-                    command.Parameters.AddWithValue("@id", id);
-                    foreach (var prop in properties)
-                    {
-                        command.Parameters.AddWithValue("@" + prop.Name, prop.GetValue(entity) ?? DBNull.Value);
-                    }
-                    await command.ExecuteNonQueryAsync();
-                }
-            }
-            return entity;
+            return affectedRows > 0;
         }
 
-
-        private T MapReaderToEntity(SqlDataReader reader)
+        public async Task<T?> UpdateAsync(T entity)
         {
-            var entity = Activator.CreateInstance<T>();
+            var properties = typeof(T).GetProperties();
+            var keyProperty = properties.FirstOrDefault(p => p.GetCustomAttribute<KeyAttribute>() != null)
+                              ?? throw new InvalidOperationException(ExceptionMessage.NOT_HAVE_PROPERTY);
 
-            foreach (var prop in typeof(T).GetProperties())
+            var keyValue = keyProperty.GetValue(entity)
+                           ?? throw new InvalidOperationException(ExceptionMessage.NULL_ID_VALUE);
+
+            var keyColumn = GetColumnName(keyProperty);
+            var updateProperties = properties.Where(p => p != keyProperty).ToList();
+
+            var setClause = string.Join(", ", updateProperties.Select(p => $"{GetColumnName(p)} = @{p.Name}"));
+            var query = $"UPDATE {_tableName} SET {setClause} WHERE {keyColumn} = @Id";
+
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand(query, connection);
+
+            foreach (var prop in updateProperties)
             {
-                // Önce [Column] niteliğini kontrol et
-                var columnAttr = prop.GetCustomAttribute<ColumnAttribute>();
-                string columnName = columnAttr != null ? columnAttr.Name : prop.Name;
+                command.Parameters.AddWithValue("@" + prop.Name, prop.GetValue(entity) ?? DBNull.Value);
+            }
 
+            command.Parameters.AddWithValue("@Id", keyValue);
+
+            await connection.OpenAsync();
+            var affectedRows = await command.ExecuteNonQueryAsync();
+
+            return affectedRows > 0 ? entity : null;
+        }
+
+        private static string GetColumnName(PropertyInfo prop)
+        {
+            return prop.GetCustomAttribute<ColumnAttribute>()?.Name ?? prop.Name;
+        }
+
+        private static List<PropertyInfo> GetNonKeyProperties()
+        {
+            return typeof(T).GetProperties()
+                            .Where(p => p.GetCustomAttribute<KeyAttribute>() == null)
+                            .ToList();
+        }
+
+        private static T MapReaderToEntity(SqlDataReader reader)
+        {
+            var entity = new T();
+            var properties = typeof(T).GetProperties();
+
+            foreach (var prop in properties)
+            {
+                var columnName = GetColumnName(prop);
                 try
                 {
                     if (!reader.IsDBNull(reader.GetOrdinal(columnName)))
@@ -157,12 +159,11 @@ namespace CustomerManager.Infrastructure.Repositories
                 }
                 catch (IndexOutOfRangeException)
                 {
-                    Console.WriteLine($"Sütun bulunamadı: {columnName}");
+                    Console.WriteLine($"Column not found in reader: {columnName}");
                 }
             }
 
             return entity;
         }
-
     }
 }

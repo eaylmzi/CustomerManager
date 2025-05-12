@@ -4,17 +4,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CustomerManager.Application
+namespace CustomerManager.Application.Common
 {
-    public class Response<T>
+    public class ApiResponse<T>
     {
         public string Message { get; set; } = null!;
         public T? Data { get; set; }
         public bool Progress { get; set; }
 
-        public static Response<T> CreateSuccessMessage(T data, string message)
+        public static ApiResponse<T> CreateSuccessMessage(T data, string message)
         {
-            return new Response<T>
+            return new ApiResponse<T>
             {
                 Data = data,
                 Message = message,
@@ -22,15 +22,16 @@ namespace CustomerManager.Application
             };
         }
 
-        public static Response<T> CreateFailureMessage(string message)
+        public static ApiResponse<T> CreateFailureMessage(string message)
         {
-            return new Response<T>
+            return new ApiResponse<T>
             {
-                Data = default(T),
+                Data = default,
                 Message = message,
                 Progress = false
             };
         }
+
 
     }
 }

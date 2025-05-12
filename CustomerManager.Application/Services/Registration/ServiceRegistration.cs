@@ -16,11 +16,8 @@ namespace CustomerManager.Application.Services.Registration
         {
             var assm = Assembly.GetExecutingAssembly();
 
-            //services.AddMediatR(assm);
-            //services.AddAutoMapper(assm);
-
             services.AddAutoMapper(assm); 
-            services.AddSingleton<ICustomerService, CustomerService>();
+            services.AddScoped<ICustomerService, CustomerService>();
 
             return services;
         }

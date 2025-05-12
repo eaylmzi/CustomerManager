@@ -1,5 +1,7 @@
-﻿using CustomerManager.Application.Interfaces.Repositories;
+﻿using CustomerManager.Application.Interfaces.Factory;
+using CustomerManager.Application.Interfaces.Repositories;
 using CustomerManager.Application.Services.CustomerLogic;
+using CustomerManager.Infrastructure.Factory;
 using CustomerManager.Infrastructure.Repositories;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -17,11 +19,9 @@ namespace CustomerManager.Infrastructure.Services.Registration
         {
             var assm = Assembly.GetExecutingAssembly();
 
-            //services.AddMediatR(assm);
-            //services.AddAutoMapper(assm);
-
-            //services.AddAutoMapper(assm); 
-            services.AddSingleton<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ICityRepository, CityRepository>();
+            services.AddScoped<ICityFactory, CityFactory>();
 
             return services;
         }

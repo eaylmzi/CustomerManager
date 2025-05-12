@@ -9,8 +9,8 @@ namespace CustomerManager.Application.Dtos.Customers
 {
     public class CustomerDto
     {
-        public string Name { get; set; } = null!;
-        public string Surname { get; set; } = null!;
+        public string Name { get; set; } 
+        public string Surname { get; set; } 
         public decimal Balance { get; set; }
         public bool Status { get; set; }
         public string CityName { get; set; } = null!;
